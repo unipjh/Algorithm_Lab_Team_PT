@@ -7,8 +7,8 @@ from collections import deque
 
 def _binary_search(sorted_arr, target):
     """
-    [Core Algorithm] 문자열 리스트에서 target의 인덱스를 O(log N)으로 찾음
-    딕셔너리(Hash) 대신 사용하여 과제 제약을 준수함.
+    [Core Algorithm] Find index of target in string list in O(log N)
+    Using Binary Search to avoid dict/hash maps.
     """
     left, right = 0, len(sorted_arr) - 1
     while left <= right:
@@ -22,7 +22,7 @@ def _binary_search(sorted_arr, target):
     return -1  # Not found
 
 def _create_mapping_list(nodes):
-    """노드명 리스트 정렬 및 중복 제거"""
+    """Sort and deduplicate node names list"""
     unique_nodes = []
     for node in nodes:
         exists = False
@@ -46,8 +46,8 @@ def _create_mapping_list(nodes):
 
 def _build_adj_list_indices_no_dict(n, edges, sorted_nodes, is_directed, reverse=False):
     """
-    리스트와 이진 탐색만으로 인접 리스트 구축
-    reverse=True일 경우 역방향 그래프(Transpose Graph) 생성 (SCC용)
+    Build adjacency list using list and binary search only.
+    reverse=True builds Transpose Graph (for SCC).
     """
     adj = [[] for _ in range(n)]
     
@@ -65,7 +65,7 @@ def _build_adj_list_indices_no_dict(n, edges, sorted_nodes, is_directed, reverse
                 if src not in adj[dst]:
                     adj[dst].append(src)
     
-    # 정렬 (Selection Sort) for deterministic behavior
+    # Sort neighbors (Selection Sort) for deterministic behavior
     for neighbors in adj:
         m = len(neighbors)
         for i in range(m):
@@ -76,8 +76,9 @@ def _build_adj_list_indices_no_dict(n, edges, sorted_nodes, is_directed, reverse
             if min_idx != i:
                 neighbors[i], neighbors[min_idx] = neighbors[min_idx], neighbors[i]
     return adj
+
 # ============================================================
-# 1. BFS Implementation (Queue 명시)
+# 1. BFS Implementation (Queue Explicit)
 # ============================================================
 def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
     sorted_nodes_map = _create_mapping_list(nodes)
@@ -104,16 +105,16 @@ def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
         levels[root] = 0
         queue.append(root)
 
-        # [Fix] algo_style="BFS" 추가
+        # [Log Change] English
         steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, list(queue), [], levels, {}, comp_count, 
-                                    f"🚀 컴포넌트 #{comp_count} 시작 (Root: {sorted_nodes_map[root]})", algo_style="BFS"))
+                                    f"🚀 Start Component #{comp_count} (Root: {sorted_nodes_map[root]})", algo_style="BFS"))
 
         while queue:
             curr = queue.popleft()
             if curr not in global_visit_order: global_visit_order.append(curr)
             
             steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, list(queue), [], levels, {}, comp_count,
-                                        f"📍 방문: {sorted_nodes_map[curr]} (L{levels[curr]})", algo_style="BFS"))
+                                        f"📍 Visit: {sorted_nodes_map[curr]} (L{levels[curr]})", algo_style="BFS"))
 
             for neighbor in adj[curr]:
                 if not visited[neighbor]:
@@ -121,13 +122,13 @@ def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
                     levels[neighbor] = levels[curr] + 1
                     queue.append(neighbor)
                     steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, list(queue), [(curr, neighbor)], levels, {}, comp_count,
-                                                f"  🔎 발견: {sorted_nodes_map[neighbor]} -> Queue", algo_style="BFS"))
+                                                f"  🔎 Discovered: {sorted_nodes_map[neighbor]} -> Queue", algo_style="BFS"))
     
-    steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, [], [], levels, {}, comp_count, "✅ BFS 탐색 종료", algo_style="BFS"))
+    steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, [], [], levels, {}, comp_count, "✅ BFS Traversal Complete", algo_style="BFS"))
     return steps
 
 # ============================================================
-# 2. DFS Implementation (Stack 명시)
+# 2. DFS Implementation (Stack Explicit)
 # ============================================================
 def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
     sorted_nodes_map = _create_mapping_list(nodes)
@@ -155,10 +156,10 @@ def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
         global_visit_order.append(root)
         depths[root] = 0
         
-        # [Fix] algo_style="DFS" 추가
+        # [Log Change] English
         steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, stack, [], depths, edge_types_list, comp_count,
-                                        f"🚀 컴포넌트 #{comp_count} 시작 (Root: {sorted_nodes_map[root]})", algo_style="DFS"))
-
+                                        f"🚀 Start Component #{comp_count} (Root: {sorted_nodes_map[root]})", algo_style="DFS"))
+      
         while stack:
             u, iter_idx, d = stack[-1]
             neighbors = adj[u]
@@ -196,36 +197,42 @@ def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
                 stack.pop()
                 colors[u] = 2
                 steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, stack, [], depths, edge_types_list, comp_count,
-                                                f"🔙 백트래킹: {sorted_nodes_map[u]} 완료", algo_style="DFS"))
+                                                f"🔙 Backtrack: Finished {sorted_nodes_map[u]}", algo_style="DFS"))
 
-    steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, [], [], depths, edge_types_list, comp_count, "✅ DFS 탐색 종료", algo_style="DFS"))
+    steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, [], [], depths, edge_types_list, comp_count, "✅ DFS Traversal Complete", algo_style="DFS"))
     return steps
 
 # ======================================================================
 # 3. Topological Sort Simulation (DFS + finishing time + pop based)
 # ======================================================================
-def run_topological_sort_simulation(nodes, edges, is_directed=True):
-    # 1) 매핑 및 인접 리스트 생성
+def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=True):
+    # 1) Mapping & Adj List
     node_map = _create_mapping_list(nodes)
     n = len(node_map)
     adj = _build_adj_list_indices_no_dict(n, edges, node_map, is_directed)
 
-    visited = [0] * n  # 0:미방문, 1:방문중, 2:완료
+    visited = [0] * n  # 0:None, 1:Visiting, 2:Done
     stack = []         # finishing time push
     steps = []         # UI snapshot
     global_visit_order = [] 
     comp_count = 0     
 
-    # 전체 노드를 0..n-1 순서로 탐색
-    for root in range(n):
+    # Reorder search sequence
+    start_idx = _binary_search(node_map, start_node) if start_node else -1
+    search_sequence = []
+    if start_idx != -1: search_sequence.append(start_idx)
+    for i in range(n):
+        if i != start_idx: search_sequence.append(i)
+
+    for root in search_sequence:
         if visited[root] != 0: continue
 
         comp_count += 1
         
-        # 스냅샷: 컴포넌트 시작
+        # [Log Change] English
         steps.append(_make_snapshot_topo(
             node_map, visited, global_visit_order, stack, None, comp_count,
-            f"🚀 Component #{comp_count} 시작 (Root: {node_map[root]})"
+            f"🚀 Start Component #{comp_count} (Root: {node_map[root]})"
         ))
 
         # --- DFS (Recursive Closure) ---
@@ -245,7 +252,7 @@ def run_topological_sort_simulation(nodes, edges, is_directed=True):
                         # Cycle Detected
                         steps.append(_make_snapshot_topo(
                             node_map, visited, global_visit_order, stack, (u, v), comp_count,
-                            f"❌ Cycle 발견: {node_map[u]} → {node_map[v]}"
+                            f"❌ Cycle Detected: {node_map[u]} → {node_map[v]}"
                         ))
                         raise ValueError("CYCLE")
 
@@ -261,25 +268,22 @@ def run_topological_sort_simulation(nodes, edges, is_directed=True):
         except ValueError:
             steps.append(_make_snapshot_topo(
                 node_map, visited, global_visit_order, stack, None, comp_count,
-                "⛔ 사이클로 인해 Topological Sort 불가능"
+                "⛔ Topological Sort Failed (Cycle Detected)"
             ))
-            return steps # Return steps immediately on error
+            return steps 
 
-    # --- 스택 pop으로 ordering 생성 (UI Visualization)
+    # --- Pop Stack to Generate Order
     ordering = []
-    # 시각화를 위해 스택을 복사해서 하나씩 팝하는 척 연출
     temp_stack = list(stack)
     
     steps.append(_make_snapshot_topo(
         node_map, visited, global_visit_order, stack, None, comp_count,
-        "🔄 DFS 종료. 스택에서 Pop하여 정렬 순서 생성 시작"
+        "🔄 DFS Finished. Pop from stack to generate order."
     ))
 
     while temp_stack:
         node_idx = temp_stack.pop()
         ordering.append(node_idx)
-        # UI에 보여줄 때는, 현재까지 팝 된 순서를 visit_order 자리에 대신 보여주거나 별도 처리가능
-        # 여기서는 Topo Sort 결과를 강조하기 위해 log에 기록
         steps.append(_make_snapshot_topo(
             node_map, visited, ordering, temp_stack, None, comp_count,
             f"🔽 Pop: {node_map[node_idx]} (Rank {len(ordering)})"
@@ -287,7 +291,7 @@ def run_topological_sort_simulation(nodes, edges, is_directed=True):
 
     steps.append(_make_snapshot_topo(
         node_map, visited, ordering, [], None, comp_count,
-        "✅ 위상 정렬 완료"
+        "✅ Topological Sort Complete"
     ))
 
     return steps
@@ -295,14 +299,21 @@ def run_topological_sort_simulation(nodes, edges, is_directed=True):
 # ============================================================
 # 4. SCC (Kosaraju) + UI Simulation
 # ============================================================
-def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
+def run_scc_kosaraju_ui(nodes, edges, start_node=None, is_directed=True):
     steps = []
     node_map = _create_mapping_list(nodes)
     n = len(node_map)
 
-    # 정방향 & 역방향 인접 리스트
+    # Adj & Reverse Adj
     adj  = _build_adj_list_indices_no_dict(n, edges, node_map, is_directed, reverse=False)
     radj = _build_adj_list_indices_no_dict(n, edges, node_map, is_directed, reverse=True)
+
+    # Reorder search sequence
+    start_idx = _binary_search(node_map, start_node) if start_node else -1
+    search_sequence = []
+    if start_idx != -1: search_sequence.append(start_idx)
+    for i in range(n):
+        if i != start_idx: search_sequence.append(i)
 
     # --- Phase 1: DFS to fill stack ---
     colors = [0] * n
@@ -312,8 +323,9 @@ def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
     def dfs1(u):
         colors[u] = 1
         visit_order.append(u)
+        # [Log Change] English
         steps.append(_make_snapshot_scc(
-            phase=1, description=f"➡ DFS1 방문: {node_map[u]}",
+            phase=1, description=f"➡ DFS1 Visit: {node_map[u]}",
             node_map=node_map, colors=colors, visit_order=visit_order,
             order_stack=order_stack, scc_groups=[], current_scc=[]
         ))
@@ -325,12 +337,12 @@ def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
         colors[u] = 2
         order_stack.append(u)
         steps.append(_make_snapshot_scc(
-            phase=1, description=f"⬆ 완료(push): {node_map[u]}",
+            phase=1, description=f"⬆ Finished (push): {node_map[u]}",
             node_map=node_map, colors=colors, visit_order=visit_order,
             order_stack=order_stack, scc_groups=[], current_scc=[]
         ))
 
-    for i in range(n):
+    for i in search_sequence:
         if colors[i] == 0:
             dfs1(i)
 
@@ -341,8 +353,9 @@ def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
     def dfs2(u, current_scc):
         colors[u] = 1
         current_scc.append(u)
+        # [Log Change] English
         steps.append(_make_snapshot_scc(
-            phase=2, description=f"➡ DFS2(역방향) 방문: {node_map[u]}",
+            phase=2, description=f"➡ DFS2 (Reverse) Visit: {node_map[u]}",
             node_map=node_map, colors=colors, visit_order=visit_order,
             order_stack=order_stack, scc_groups=scc_groups, current_scc=current_scc
         ))
@@ -353,7 +366,7 @@ def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
         colors[u] = 2
 
     steps.append(_make_snapshot_scc(
-        phase=2, description="🔄 Phase 2: 스택 Pop & 역방향 DFS 시작",
+        phase=2, description="🔄 Phase 2: Pop Stack & Start Reverse DFS",
         node_map=node_map, colors=colors, visit_order=visit_order,
         order_stack=order_stack, scc_groups=scc_groups, current_scc=[]
     ))
@@ -368,13 +381,13 @@ def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
         scc_groups.append(new_scc)
 
         steps.append(_make_snapshot_scc(
-            phase=2, description=f"📦 SCC 발견 #{len(scc_groups)}: {[node_map[x] for x in new_scc]}",
+            phase=2, description=f"📦 SCC Found #{len(scc_groups)}: {[node_map[x] for x in new_scc]}",
             node_map=node_map, colors=colors, visit_order=visit_order,
             order_stack=order_stack, scc_groups=scc_groups, current_scc=new_scc
         ))
 
     steps.append(_make_snapshot_scc(
-        phase=2, description="🏁 SCC 탐색 종료",
+        phase=2, description="🏁 SCC Search Complete",
         node_map=node_map, colors=colors, visit_order=visit_order,
         order_stack=order_stack, scc_groups=scc_groups, current_scc=[]
     ))
@@ -385,13 +398,11 @@ def run_scc_kosaraju_ui(nodes, edges, is_directed=True):
 # Snapshot Helpers (Updated)
 # ============================================================
 def _make_snapshot_bfs_dfs(node_map, visited_arr, order_indices, structure_list, active_tuple_list, levels_arr, edge_types_list, comp_cnt, log, algo_style="BFS"):
-    # Edge Types List -> Dict 변환
     edge_types_dict = {}
     if isinstance(edge_types_list, list):
         for k, t in edge_types_list:
             edge_types_dict[k] = t
     
-    # 구조체(큐/스택) 내부 데이터 평탄화 (Flat List)
     flat_structure = []
     for item in structure_list:
         if isinstance(item, list): # DFS stack [node, idx, depth]
@@ -399,7 +410,6 @@ def _make_snapshot_bfs_dfs(node_map, visited_arr, order_indices, structure_list,
         else: # BFS queue or simple list
             flat_structure.append(node_map[item])
 
-    # [핵심 수정] algo_style에 따라 'queue' 혹은 'stack' 키 중 하나만 포함시켜야 함
     snapshot = {
         "visited": [node_map[i] for i, v in enumerate(visited_arr) if v and (isinstance(v, bool) or v > 0)],
         "visit_order": [node_map[i] for i in order_indices],
@@ -410,7 +420,6 @@ def _make_snapshot_bfs_dfs(node_map, visited_arr, order_indices, structure_list,
         "log": log
     }
 
-    # 키(Key)가 존재하느냐 마느냐로 app.py가 UI를 결정하므로, 선택적으로 키를 추가합니다.
     if algo_style == "BFS":
         snapshot["queue"] = flat_structure
     else:
@@ -419,50 +428,44 @@ def _make_snapshot_bfs_dfs(node_map, visited_arr, order_indices, structure_list,
     return snapshot
 
 def _make_snapshot_topo(node_map, colors, visit_order, stack, edge, comp_count, message):
-    # Topo Sort 스냅샷 -> app.py 호환 변환
     visited_nodes = [node_map[i] for i, c in enumerate(colors) if c > 0]
     stack_nodes = [node_map[i] for i in stack]
     active_e = []
     if edge:
         active_e.append((node_map[edge[0]], node_map[edge[1]]))
     
-    # visit_order가 정수 리스트이므로 변환
     visit_order_str = [node_map[i] for i in visit_order]
 
     return {
         "visited": visited_nodes,
-        "visit_order": visit_order_str, # 정렬 결과 혹은 방문 순서
+        "visit_order": visit_order_str, 
         "stack": stack_nodes,
         "active_edges": active_e,
         "log": message,
         "component_count": comp_count,
-        "levels": {}, # Topo에서는 레벨 표시 생략 가능
+        "levels": {}, 
         "edge_types": {}
     }
 
 def _make_snapshot_scc(phase, description, node_map, colors, visit_order, order_stack, scc_groups, current_scc):
-    # SCC 스냅샷 -> app.py 호환 변환
-    # scc_groups (List[List[int]]) -> dict {node_str: group_id}
     scc_dict = {}
     for gid, group in enumerate(scc_groups):
         for nid in group:
             scc_dict[node_map[nid]] = gid
     
-    # 현재 형성 중인 SCC는 임시 ID 부여 (시각화 구분용)
     temp_id = len(scc_groups)
     for nid in current_scc:
         scc_dict[node_map[nid]] = temp_id
 
-    # UI에서는 colors 배열을 visited로 인식
     visited_nodes = [node_map[i] for i, c in enumerate(colors) if c > 0]
     
     return {
         "visited": visited_nodes,
         "stack": [node_map[i] for i in order_stack],
-        "scc_groups": scc_dict, # app.py에서 색상 처리에 사용
+        "scc_groups": scc_dict, 
         "log": description,
         "active_edges": [],
-        "levels": {}, # Kosaraju에서는 Low-link 사용 안함
+        "levels": {}, 
         "visit_order": [node_map[i] for i in visit_order],
         "edge_types": {}
     }
