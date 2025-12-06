@@ -28,7 +28,7 @@ def render_graph(nodes, edges, step_state, algo_type, is_directed):
     levels = step_state.get("levels", {})
     visit_order = step_state.get("visit_order", [])
     
-    # 큐/스택 처리 (키가 없으면 빈 리스트)
+    # 큐/스택 처리
     in_structure = set(step_state.get("queue", []) + step_state.get("stack", []))
     
     # SCC 그룹 정보
@@ -43,9 +43,12 @@ def render_graph(nodes, edges, step_state, algo_type, is_directed):
         color = "#7F8C8D"
         label_text = node
 
-        # 1. Labeling & Basic Coloring
-        if algo_type.startswith("BFS") and node in levels:
-            label_text = f"{node}\nL{levels[node]}"
+        # [수정] 1. Labeling (BFS: Level / DFS: Depth)
+        if node in levels:
+            if algo_type.startswith("BFS"):
+                label_text = f"{node}\nL{levels[node]}" # Level
+            elif algo_type.startswith("DFS"):
+                label_text = f"{node}\nD{levels[node]}" # Depth
         
         # 2. Status Coloring
         # (A) SCC Coloring (최우선)
@@ -69,6 +72,10 @@ def render_graph(nodes, edges, step_state, algo_type, is_directed):
         if node in in_structure:
             fillcolor = "#D6EAF8" # 파랑
             color = "#3498DB"
+            # 대기 중인 상태에서도 레벨/깊이 정보를 미리 보고 싶다면 아래 주석 해제
+            # if node in levels:
+            #     prefix = "L" if algo_type.startswith("BFS") else "D"
+            #     label_text = f"{node}\n{prefix}{levels[node]}"
 
         # (D) Current Node (Highlight)
         if node == current_node:
@@ -136,7 +143,7 @@ def main():
         is_directed = st.toggle("Directed Graph (유향)", value=st.session_state.is_directed)
         st.session_state.is_directed = is_directed
         
-        default_input = "A B\nA C\nB D\nC E\nC F\nE F" if not is_directed else "A B\nB C\nC A\nA D"
+        default_input = "A B\nA C\nB D\nC E\nC F\nE F" if not is_directed else "A B\nB D\nB C\nC E\nE F"
         
         tab1, tab2 = st.tabs(["Direct Input", "File Upload"])
         with tab1:
@@ -160,17 +167,14 @@ def main():
         st.divider()
         st.header("2️⃣ Algorithm Selection")
         
-        # [수정] 메인 화면에 있던 알고리즘 선택을 사이드바로 확실히 이동
         if st.session_state.nodes:
             algo_options = ["BFS (Breadth-First)", "DFS (Depth-First)", "Topological Sort", "SCC (Kosaraju)"]
             algo = st.selectbox("Choose Algorithm", algo_options)
             
-            # 시작 노드 선택 (Topo, SCC는 자동 순회하므로 비활성화 가능하지만, 로직상 무관하면 유지)
-            # 여기서는 편의상 Topo/SCC일 때 시작 노드 선택을 숨기거나 비활성화
-            use_start_node = algo in ["BFS (Breadth-First)", "DFS (Depth-First)"]
-            start_node = st.selectbox("Start Node", st.session_state.nodes, disabled=not use_start_node)
+            # [수정] 모든 알고리즘에서 Start Node 선택 가능하도록 disabled 제거
+            start_node = st.selectbox("Start Node", st.session_state.nodes)
             
-            if st.button("🚀 Initialize Simulation", use_container_width=True):
+        if st.button("🚀 Initialize Simulation", use_container_width=True):
                 st.session_state.algo_type = algo
                 steps = []
 
@@ -187,15 +191,23 @@ def main():
                     if not is_directed:
                         st.error("Topological Sort requires a Directed Graph.")
                     else:
+                        # [수정] start_node를 명시적으로 전달 (키워드 인자 사용 권장)
                         steps = functions.run_topological_sort_simulation(
-                            st.session_state.nodes, st.session_state.edges, is_directed
+                            nodes=st.session_state.nodes, 
+                            edges=st.session_state.edges, 
+                            start_node=start_node, 
+                            is_directed=is_directed
                         )
                 elif algo.startswith("SCC"):
                     if not is_directed:
                         st.error("SCC requires a Directed Graph.")
                     else:
+                        # [수정] start_node를 명시적으로 전달 (키워드 인자 사용 권장)
                         steps = functions.run_scc_kosaraju_ui(
-                            st.session_state.nodes, st.session_state.edges, is_directed
+                            nodes=st.session_state.nodes, 
+                            edges=st.session_state.edges, 
+                            start_node=start_node, 
+                            is_directed=is_directed
                         )
                 
                 if steps:
