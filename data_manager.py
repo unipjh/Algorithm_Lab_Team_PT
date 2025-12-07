@@ -1,29 +1,28 @@
 # data_manager.py
-# (데이터 전처리 및 파싱 담당)
 
 def parse_edge_list(file_content_str: str):
     """
-    업로드된 파일(.txt)을 파싱하여 노드와 엣지 리스트를 반환합니다.
-    Format:
-    A B
-    A C
-    ...
+    Parses raw string content (from text area or file) into nodes and edges.
+    Expected Format: "NodeA NodeB" per line.
     """
     edges = []
     nodes = set()
     
-    # 윈도우/리눅스 개행문자 호환을 위해 splitlines() 사용 권장
+    # Use splitlines() to handle different line endings (Windows/Linux) robustly
     lines = file_content_str.strip().splitlines()
     
     for line in lines:
         parts = line.strip().split()
+        
+        # Ensure at least two parts exist (Source, Target)
         if len(parts) >= 2:
             u, v = parts[0], parts[1]
-            # 자기 자신으로의 루프나 빈 데이터 방지 로직 추가 가능
+            
+            # Validation: Ignore empty strings
             if u and v:
                 edges.append((u, v))
                 nodes.add(u)
                 nodes.add(v)
                 
-    # 노드 리스트는 정렬하여 반환 (시각적 일관성)
+    # Return sorted nodes for consistent ordering in UI
     return sorted(list(nodes)), edges
