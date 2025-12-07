@@ -1,8 +1,14 @@
-# functions.py (전체 코드 업데이트)
 from collections import deque
 
-# ... (Helper 함수들은 그대로 유지) ...
+# ============================================================
+# [Helper Functions] Data Structure Constraints
+# ============================================================
+
 def _binary_search(sorted_arr, target):
+    """
+    [Constraint] Use Binary Search (O(log N)) instead of Dictionary/Hash.
+    Returns index of target, or -1 if not found.
+    """
     left, right = 0, len(sorted_arr) - 1
     while left <= right:
         mid = (left + right) // 2
@@ -15,16 +21,20 @@ def _binary_search(sorted_arr, target):
     return -1
 
 def _create_mapping_list(nodes):
+    """
+    Sort and Deduplicate node names.
+    Uses Selection Sort to strictly avoid Python's sort() or set if required.
+    """
     unique_nodes = []
     for node in nodes:
         exists = False
         for n in unique_nodes:
             if n == node:
-                exists = True
-                break
+                exists = True; break
         if not exists:
             unique_nodes.append(node)
     
+    # Selection Sort
     n = len(unique_nodes)
     for i in range(n):
         min_idx = i
@@ -36,17 +46,28 @@ def _create_mapping_list(nodes):
     return unique_nodes
 
 def _build_adj_list_indices_no_dict(n, edges, sorted_nodes, is_directed, reverse=False):
+    """
+    Build Adjacency List using only Lists and Indices.
+    reverse=True: Builds Transpose Graph (Used in SCC Phase 2).
+    """
     adj = [[] for _ in range(n)]
+    
     for u, v in edges:
         u_idx = _binary_search(sorted_nodes, u)
         v_idx = _binary_search(sorted_nodes, v)
+
         if u_idx != -1 and v_idx != -1:
+            # Swap source/dest if building transpose graph
             src, dst = (v_idx, u_idx) if reverse else (u_idx, v_idx)
+            
             if dst not in adj[src]: 
                 adj[src].append(dst)
+            
             if not is_directed and not reverse:
                 if src not in adj[dst]:
                     adj[dst].append(src)
+    
+    # Sort neighbors for deterministic visualization
     for neighbors in adj:
         m = len(neighbors)
         for i in range(m):
@@ -59,7 +80,7 @@ def _build_adj_list_indices_no_dict(n, edges, sorted_nodes, is_directed, reverse
     return adj
 
 # ============================================================
-# 1. BFS
+# 1. BFS Implementation
 # ============================================================
 def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
     sorted_nodes_map = _create_mapping_list(nodes)
@@ -73,10 +94,9 @@ def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
     steps = []
     comp_count = 0
     global_visit_order = [] 
-    
-    # [추가] BFS에서도 간선 타입을 추적하기 위한 리스트
-    edge_types_list = []
+    edge_types_list = [] # For tracking Tree Edges in BFS
 
+    # Reorder search sequence to start with the user-selected node
     search_sequence = []
     if start_idx != -1: search_sequence.append(start_idx)
     for i in range(n):
@@ -89,7 +109,6 @@ def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
         levels[root] = 0
         queue.append(root)
 
-        # [수정] edge_types_list 전달
         steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, list(queue), [], levels, edge_types_list, comp_count, 
                                     f"🚀 Start Component #{comp_count} (Root: {sorted_nodes_map[root]})", algo_style="BFS"))
 
@@ -105,13 +124,12 @@ def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
                     visited[neighbor] = True
                     levels[neighbor] = levels[curr] + 1
                     
-                    # [핵심 추가] BFS Tree Edge 기록
+                    # Record Tree Edge
                     u_str, v_str = sorted_nodes_map[curr], sorted_nodes_map[neighbor]
                     ekey = (u_str, v_str) if is_directed else (tuple(sorted((u_str, v_str))))
                     edge_types_list.append((ekey, "tree"))
                     
                     queue.append(neighbor)
-                    
                     steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, visited, global_visit_order, list(queue), [(curr, neighbor)], levels, edge_types_list, comp_count,
                                                 f"  🔎 Discovered (Tree Edge): {sorted_nodes_map[neighbor]} -> Queue", algo_style="BFS"))
     
@@ -120,7 +138,7 @@ def run_bfs_simulation(nodes, edges, start_node, is_directed=False):
     return steps
 
 # ============================================================
-# 2. DFS
+# 2. DFS Implementation
 # ============================================================
 def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
     sorted_nodes_map = _create_mapping_list(nodes)
@@ -135,6 +153,7 @@ def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
     global_visit_order = []
     edge_types_list = [] 
 
+    # Reorder search sequence
     search_sequence = []
     if start_idx != -1: search_sequence.append(start_idx)
     for i in range(n):
@@ -158,13 +177,14 @@ def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
             if iter_idx < len(neighbors):
                 v = neighbors[iter_idx]
                 stack[-1][1] += 1
+                
                 u_str, v_str = sorted_nodes_map[u], sorted_nodes_map[v]
                 ekey = (u_str, v_str) if is_directed else (tuple(sorted((u_str, v_str))))
                 existing_type = None
                 for k, t in edge_types_list:
                     if k == ekey: existing_type = t; break
 
-                if colors[v] == 0: 
+                if colors[v] == 0: # Tree Edge
                     edge_types_list.append((ekey, "tree"))
                     colors[v] = 1 
                     depths[v] = d + 1
@@ -172,13 +192,13 @@ def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
                     stack.append([v, 0, d + 1])
                     steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, stack, [(u, v)], depths, edge_types_list, comp_count,
                                                     f"  Tree Edge: {u_str}->{v_str}", algo_style="DFS"))
-                elif colors[v] == 1: 
+                elif colors[v] == 1: # Back Edge
                     is_parent = (not is_directed and len(stack) >= 2 and stack[-2][0] == v)
                     if not is_parent and existing_type is None:
                         edge_types_list.append((ekey, "back"))
                         steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, stack, [(u, v)], depths, edge_types_list, comp_count,
                                                         f"  🔄 Back Edge: {u_str}->{v_str}", algo_style="DFS"))
-                elif colors[v] == 2:
+                elif colors[v] == 2: # Cross/Forward
                     if is_directed and existing_type is None:
                         edge_types_list.append((ekey, "cross"))
                         steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, stack, [(u, v)], depths, edge_types_list, comp_count,
@@ -189,13 +209,12 @@ def run_dfs_simulation(nodes, edges, start_node, is_directed=False):
                 steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, stack, [], depths, edge_types_list, comp_count,
                                                 f"🔙 Backtrack: Finished {sorted_nodes_map[u]}", algo_style="DFS"))
 
-    # [수정] 마지막 로그에 총 개수 포함
     steps.append(_make_snapshot_bfs_dfs(sorted_nodes_map, colors, global_visit_order, [], [], depths, edge_types_list, comp_count, 
                                         f"✅ DFS Traversal Complete. (Total Components: {comp_count})", algo_style="DFS"))
     return steps
 
 # ============================================================
-# 3. Topological Sort
+# 3. Topological Sort (DFS-based)
 # ============================================================
 def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=True):
     node_map = _create_mapping_list(nodes)
@@ -208,6 +227,7 @@ def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=T
     global_visit_order = [] 
     comp_count = 0     
 
+    # Reorder search sequence
     start_idx = _binary_search(node_map, start_node) if start_node else -1
     search_sequence = []
     if start_idx != -1: search_sequence.append(start_idx)
@@ -225,7 +245,7 @@ def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=T
 
         try:
             def dfs(u):
-                visited[u] = 1 
+                visited[u] = 1 # Gray
                 global_visit_order.append(u)
                 steps.append(_make_snapshot_topo(
                     node_map, visited, global_visit_order, stack, None, comp_count,
@@ -236,14 +256,15 @@ def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=T
                     if visited[v] == 0:
                         dfs(v)
                     elif visited[v] == 1:
+                        # Cycle Detected
                         steps.append(_make_snapshot_topo(
                             node_map, visited, global_visit_order, stack, (u, v), comp_count,
                             f"❌ Cycle Detected: {node_map[u]} → {node_map[v]}"
                         ))
                         raise ValueError("CYCLE")
 
-                visited[u] = 2 
-                stack.append(u) 
+                visited[u] = 2 # Black
+                stack.append(u) # Push to finishing stack
                 steps.append(_make_snapshot_topo(
                     node_map, visited, global_visit_order, stack, None, comp_count,
                     f"📌 Finishing: {node_map[u]} push"
@@ -258,6 +279,7 @@ def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=T
             ))
             return steps 
 
+    # Pop Stack to generate Topological Order
     ordering = []
     temp_stack = list(stack)
     
@@ -274,7 +296,6 @@ def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=T
             f"🔽 Pop: {node_map[node_idx]} (Rank {len(ordering)})"
         ))
 
-    # [수정] 마지막 로그에 총 개수 포함 (TopoSort는 컴포넌트 개념이 약하지만 DFS 기반이므로 표시 가능)
     steps.append(_make_snapshot_topo(
         node_map, visited, ordering, [], None, comp_count,
         f"✅ Topological Sort Complete. (Processed {comp_count} Components)"
@@ -283,23 +304,25 @@ def run_topological_sort_simulation(nodes, edges, start_node=None, is_directed=T
     return steps
 
 # ============================================================
-# 4. SCC
+# 4. SCC (Kosaraju's Algorithm)
 # ============================================================
 def run_scc_kosaraju_ui(nodes, edges, start_node=None, is_directed=True):
     steps = []
     node_map = _create_mapping_list(nodes)
     n = len(node_map)
 
+    # Build Standard Adj and Transpose (Reverse) Adj
     adj  = _build_adj_list_indices_no_dict(n, edges, node_map, is_directed, reverse=False)
     radj = _build_adj_list_indices_no_dict(n, edges, node_map, is_directed, reverse=True)
 
+    # Reorder search sequence
     start_idx = _binary_search(node_map, start_node) if start_node else -1
     search_sequence = []
     if start_idx != -1: search_sequence.append(start_idx)
     for i in range(n):
         if i != start_idx: search_sequence.append(i)
 
-    # --- Phase 1 ---
+    # --- Phase 1: Fill Stack based on finishing times ---
     colors = [0] * n
     visit_order = []
     order_stack = []
@@ -329,8 +352,8 @@ def run_scc_kosaraju_ui(nodes, edges, start_node=None, is_directed=True):
         if colors[i] == 0:
             dfs1(i)
 
-    # --- Phase 2 ---
-    colors = [0] * n 
+    # --- Phase 2: DFS on Transpose Graph ---
+    colors = [0] * n # Reset colors
     scc_groups = []  
 
     def dfs2(u, current_scc):
@@ -368,7 +391,6 @@ def run_scc_kosaraju_ui(nodes, edges, start_node=None, is_directed=True):
             order_stack=order_stack, scc_groups=scc_groups, current_scc=new_scc
         ))
 
-    # [수정] 마지막 로그에 총 개수 포함
     steps.append(_make_snapshot_scc(
         phase=2, description=f"🏁 SCC Search Complete. (Total SCCs: {len(scc_groups)})",
         node_map=node_map, colors=colors, visit_order=visit_order,
@@ -378,14 +400,16 @@ def run_scc_kosaraju_ui(nodes, edges, start_node=None, is_directed=True):
     return steps
 
 # ============================================================
-# Snapshot Helpers
+# Snapshot Helpers (Data Bridge)
 # ============================================================
 def _make_snapshot_bfs_dfs(node_map, visited_arr, order_indices, structure_list, active_tuple_list, levels_arr, edge_types_list, comp_cnt, log, algo_style="BFS"):
+    # Convert edge list to dict
     edge_types_dict = {}
     if isinstance(edge_types_list, list):
         for k, t in edge_types_list:
             edge_types_dict[k] = t
     
+    # Flatten structure (Queue/Stack)
     flat_structure = []
     for item in structure_list:
         if isinstance(item, list): 
@@ -399,10 +423,11 @@ def _make_snapshot_bfs_dfs(node_map, visited_arr, order_indices, structure_list,
         "active_edges": [(node_map[u], node_map[v]) for u, v in active_tuple_list],
         "levels": {node_map[i]: l for i, l in enumerate(levels_arr) if l != -1},
         "edge_types": edge_types_dict,
-        "component_count": comp_cnt, # 이미 포함되어 있음
+        "component_count": comp_cnt,
         "log": log
     }
 
+    # Selective key for UI detection
     if algo_style == "BFS":
         snapshot["queue"] = flat_structure
     else:
@@ -425,7 +450,7 @@ def _make_snapshot_topo(node_map, colors, visit_order, stack, edge, comp_count, 
         "stack": stack_nodes,
         "active_edges": active_e,
         "log": message,
-        "component_count": comp_count, # 이미 포함되어 있음
+        "component_count": comp_count,
         "levels": {}, 
         "edge_types": {}
     }
@@ -436,6 +461,7 @@ def _make_snapshot_scc(phase, description, node_map, colors, visit_order, order_
         for nid in group:
             scc_dict[node_map[nid]] = gid
     
+    # Assign temp ID to current SCC
     temp_id = len(scc_groups)
     for nid in current_scc:
         scc_dict[node_map[nid]] = temp_id
@@ -451,15 +477,17 @@ def _make_snapshot_scc(phase, description, node_map, colors, visit_order, order_
         "levels": {}, 
         "visit_order": [node_map[i] for i in visit_order],
         "edge_types": {},
-        # [수정] SCC에서도 component_count를 전달해야 app.py가 통일된 키로 읽을 수 있음
         "component_count": len(scc_groups)
     }
 
-# View Helpers (생략 - 위와 동일)
+# ============================================================
+# View Helpers
+# ============================================================
 def get_adjacency_matrix(nodes, edges, is_directed=False):
     sorted_nodes = _create_mapping_list(nodes)
     n = len(sorted_nodes)
     matrix = [[0] * n for _ in range(n)]
+    
     for u, v in edges:
         u_idx = _binary_search(sorted_nodes, u)
         v_idx = _binary_search(sorted_nodes, v)
@@ -467,12 +495,14 @@ def get_adjacency_matrix(nodes, edges, is_directed=False):
             matrix[u_idx][v_idx] = 1
             if not is_directed:
                 matrix[v_idx][u_idx] = 1
+            
     return sorted_nodes, matrix
 
 def get_adjacency_list_text(nodes, edges, is_directed=False):
     sorted_nodes = _create_mapping_list(nodes)
     n = len(sorted_nodes)
     adj = _build_adj_list_indices_no_dict(n, edges, sorted_nodes, is_directed)
+    
     lines = []
     for i in range(n):
         neighbors = [sorted_nodes[v] for v in adj[i]]
