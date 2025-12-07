@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import graphviz
 import pandas as pd 
@@ -9,29 +8,30 @@ import functions
 
 # --- 1. Visualization Helper ---
 def render_graph(nodes, edges, step_state, algo_type, is_directed):
-    # [설정] 그래프 엔진 설정
+    """
+    Renders the graph state using Graphviz based on the current step snapshot.
+    Handles node coloring (SCC, Visited, Queue) and edge styling (Tree, Back, Cross).
+    """
     if is_directed:
         dot = graphviz.Digraph(engine='neato')
     else:
         dot = graphviz.Graph(engine='neato')
     
+    # Global Attributes
     dot.attr(size='5.5,4.5!', ratio='fill', bgcolor='transparent')
     dot.attr('node', shape='circle', style='filled', fontname='Helvetica', fontsize='10', fixedsize='true', width='0.5')
     dot.attr('edge', color='#BDC3C7', penwidth='1.2', arrowsize='0.6')
 
-    # [State Unpacking]
+    # Unpack State
     visited_set = set(step_state.get("visited", []))
     current_node = step_state.get("current_node", None)
     active_edges = step_state.get("active_edges", [])
     
-    # 알고리즘별 데이터 키 처리
     levels = step_state.get("levels", {})
     visit_order = step_state.get("visit_order", [])
-    
-    # 큐/스택 처리
     in_structure = set(step_state.get("queue", []) + step_state.get("stack", []))
     
-    # SCC 그룹 정보
+    # SCC Specifics
     scc_groups = step_state.get("scc_groups", {}) 
     scc_colors = ["#FFCDD2", "#C8E6C9", "#BBDEFB", "#FFF9C4", "#E1BEE7", "#FFECB3"]
 
@@ -43,41 +43,36 @@ def render_graph(nodes, edges, step_state, algo_type, is_directed):
         color = "#7F8C8D"
         label_text = node
 
-        # [수정] 1. Labeling (BFS: Level / DFS: Depth)
+        # Labeling: Show Level (BFS) or Depth (DFS)
         if node in levels:
             if algo_type.startswith("BFS"):
-                label_text = f"{node}\nL{levels[node]}" # Level
+                label_text = f"{node}\nL{levels[node]}"
             elif algo_type.startswith("DFS"):
-                label_text = f"{node}\nD{levels[node]}" # Depth
+                label_text = f"{node}\nD{levels[node]}"
         
-        # 2. Status Coloring
-        # (A) SCC Coloring (최우선)
+        # Priority 1: SCC Coloring
         if algo_type.startswith("SCC") and node in scc_groups:
             group_id = scc_groups[node]
             fillcolor = scc_colors[group_id % len(scc_colors)]
             color = "#555555"
             label_text = f"{node}\nG{group_id}"
             
-        # (B) Visited / Topological Result
+        # Priority 2: Visited / Topo Result
         elif node in visited_set:
-            fillcolor = "#D5F5E3" # 민트
+            fillcolor = "#D5F5E3" # Mint
             color = "#2ECC71"
             
-            # 위상 정렬: 결과 리스트에 들어간 경우 순서 표시
+            # Topological Sort Rank
             if algo_type == "Topological Sort" and node in visit_order:
                 order_idx = visit_order.index(node) + 1
                 label_text = f"{node}\n#{order_idx}"
 
-        # (C) In Queue/Stack (Processing)
+        # Priority 3: In Queue/Stack
         if node in in_structure:
-            fillcolor = "#D6EAF8" # 파랑
+            fillcolor = "#D6EAF8" # Blue
             color = "#3498DB"
-            # 대기 중인 상태에서도 레벨/깊이 정보를 미리 보고 싶다면 아래 주석 해제
-            # if node in levels:
-            #     prefix = "L" if algo_type.startswith("BFS") else "D"
-            #     label_text = f"{node}\n{prefix}{levels[node]}"
 
-        # (D) Current Node (Highlight)
+        # Highlight Current Node
         if node == current_node:
             fillcolor = "#F9E79F"
             color = "#F1C40F"
@@ -96,7 +91,7 @@ def render_graph(nodes, edges, step_state, algo_type, is_directed):
         e_style = "solid"
         e_penwidth = "1.2"
         
-        # 1. Active (Current Step)
+        # 1. Active Edge (Current Step)
         if (u, v) in active_edge_set or (not is_directed and (v, u) in active_edge_set):
             e_color = "#E74C3C" 
             e_penwidth = "2.5"
@@ -127,7 +122,7 @@ def main():
     st.caption("Explainable Graph Traversal (BFS/DFS, Topological, SCC)")
     st.divider()
 
-    # Session State Init
+    # Session State Initialization
     if 'nodes' not in st.session_state: st.session_state.nodes = []
     if 'edges' not in st.session_state: st.session_state.edges = []
     if 'simulation_steps' not in st.session_state: st.session_state.simulation_steps = []
@@ -171,14 +166,14 @@ def main():
             algo_options = ["BFS (Breadth-First)", "DFS (Depth-First)", "Topological Sort", "SCC (Kosaraju)"]
             algo = st.selectbox("Choose Algorithm", algo_options)
             
-            # [수정] 모든 알고리즘에서 Start Node 선택 가능하도록 disabled 제거
+            # Start Node selection (Enabled for all algos to define traversal order)
             start_node = st.selectbox("Start Node", st.session_state.nodes)
             
-        if st.button("🚀 Initialize Simulation", use_container_width=True):
+            if st.button("🚀 Initialize Simulation", use_container_width=True):
                 st.session_state.algo_type = algo
                 steps = []
 
-                # Backend Logic Call
+                # Execute Backend Logic (Passing strict keyword arguments)
                 if algo.startswith("BFS"):
                     steps = functions.run_bfs_simulation(
                         st.session_state.nodes, st.session_state.edges, start_node, is_directed
@@ -191,7 +186,6 @@ def main():
                     if not is_directed:
                         st.error("Topological Sort requires a Directed Graph.")
                     else:
-                        # [수정] start_node를 명시적으로 전달 (키워드 인자 사용 권장)
                         steps = functions.run_topological_sort_simulation(
                             nodes=st.session_state.nodes, 
                             edges=st.session_state.edges, 
@@ -202,7 +196,6 @@ def main():
                     if not is_directed:
                         st.error("SCC requires a Directed Graph.")
                     else:
-                        # [수정] start_node를 명시적으로 전달 (키워드 인자 사용 권장)
                         steps = functions.run_scc_kosaraju_ui(
                             nodes=st.session_state.nodes, 
                             edges=st.session_state.edges, 
@@ -216,17 +209,17 @@ def main():
                     st.session_state.is_simulating = True
                     st.rerun()
 
-    # --- Main Area ---
+    # --- Main Visualization Area ---
     if st.session_state.is_simulating and st.session_state.simulation_steps:
         steps = st.session_state.simulation_steps
         idx = st.session_state.current_step_idx
         current_state = steps[idx]
         algo_type = st.session_state.algo_type
 
-        # Layout: Visualization (6) : Controls (4)
+        # Layout: Visualization (60%) : Controls (40%)
         col_viz, col_ctrl = st.columns([6, 4])
         
-        # --- [Left] Visualization ---
+        # --- [Left] Graph Visualization ---
         with col_viz:
             st.subheader(f"🖼️ {algo_type} View")
             dot_obj = render_graph(
@@ -238,17 +231,17 @@ def main():
             )
             st.graphviz_chart(dot_obj, use_container_width=True)
             
-            # 범례 표시
+            # Legend
             if algo_type.startswith("SCC"):
                 st.caption("🎨 Colors represent different SCC groups")
             else:
                 st.caption("🟦 Blue: Tree Edge | 🟥 Red Dashed: Back Edge | ⬜ Gray Dotted: Cross/Forward")
             
-        # --- [Right] Control & Dashboard ---
+        # --- [Right] Dashboard & Metrics ---
         with col_ctrl:
             st.subheader("🎮 Controls")
             
-            # 1. Navigation
+            # 1. Navigation Controls
             c1, c2, c3 = st.columns([1, 2, 1])
             with c1:
                 if st.button("⬅️ Prev", disabled=(idx==0), use_container_width=True):
@@ -264,11 +257,11 @@ def main():
                     st.rerun()
 
             st.divider()
-            # [추가] 과제 요구사항: 컴포넌트 & 트리 간선 개수 출력
-            # 1. 컴포넌트 개수 가져오기
+            
+            # 2. Key Metrics (Components & Tree Edges)
             current_comp_count = current_state.get("component_count", 0)
             
-            # 2. 트리 간선 개수 계산하기 (edge_types 딕셔너리에서 값이 'tree'인 것 카운트)
+            # Count Tree Edges
             edge_types = current_state.get("edge_types", {})
             tree_edge_count = 0
             if edge_types:
@@ -276,26 +269,22 @@ def main():
                     if t == "tree":
                         tree_edge_count += 1
             
-            # 3. 화면에 표시 (2열 레이아웃)
+            # Display Metrics
             m_col1, m_col2 = st.columns(2)
             with m_col1:
                 label_comp = "📦 Found SCCs" if algo_type.startswith("SCC") else "🔗 Components"
                 st.metric(label=label_comp, value=current_comp_count)
             with m_col2:
-                # Topo/SCC가 아닐 때(즉, BFS/DFS일 때)만 트리 간선 개수가 의미 있음
                 if algo_type in ["BFS (Breadth-First)", "DFS (Depth-First)"]:
                     st.metric(label="🌲 Tree Edges", value=tree_edge_count)
                 else:
-                    # Topo/SCC는 정렬/그룹핑이 목적이라 트리 간선 개념이 모호할 수 있어 제외하거나 전체 노드 수 등으로 대체
                     visited_cnt = len(current_state.get("visited", []))
                     st.metric(label="👣 Visited", value=visited_cnt)
 
             st.divider()
 
-            # 2. Status Panel (Dynamic UI)
-            # [수정] 알고리즘 타입에 따라 보여줄 정보를 다르게 구성
-            
-            # (A) Queue/Stack Status (공통: 있으면 보여줌)
+            # 3. Dynamic Status Panel
+            # Display Queue or Stack
             if "queue" in current_state:
                 st.markdown("**📥 Queue (FIFO):**")
                 st.code(str(current_state["queue"]), language="text")
@@ -305,9 +294,8 @@ def main():
             
             st.divider()
 
-            # (B) Context-Aware Info Panel
+            # Context-Aware Information
             if algo_type in ["BFS (Breadth-First)", "DFS (Depth-First)"]:
-                # --- BFS/DFS: Live Adjacency List ---
                 st.markdown("**📂 Live Adjacency List:**")
                 st.caption("Neighbors of discovered nodes only")
                 
@@ -315,7 +303,7 @@ def main():
                 active_edges = current_state.get("active_edges", [])
                 active_neighbors = [v for u, v in active_edges if u == curr_node]
                 
-                # 인접 리스트 빌드 (참조용)
+                # Reconstruct full adj list for reference
                 adj_dict = {node: [] for node in st.session_state.nodes}
                 for u, v in st.session_state.edges:
                     adj_dict[u].append(v)
@@ -332,34 +320,26 @@ def main():
                             neighbors = sorted(adj_dict[node])
                             display_strs = []
                             for n in neighbors:
-                                if n not in discovered_nodes: continue # 아직 발견 안 된 이웃 숨김
+                                if n not in discovered_nodes: continue
                                 if node == curr_node and n in active_neighbors:
                                     display_strs.append(f"**:red[{n}]**")
                                 else:
                                     display_strs.append(str(n))
-                            
                             st.markdown(f"**{node}** : [{', '.join(display_strs)}]")
 
             elif algo_type == "Topological Sort":
-                # --- Topological Sort: Result Order ---
                 st.markdown("**🔢 Topological Sort Order (Result):**")
-                st.caption("Nodes are added here after they finish processing (pop).")
-                
                 visit_order = current_state.get("visit_order", [])
                 
                 if not visit_order:
                     st.info("Searching... No nodes sorted yet.")
                 else:
-                    # 결과를 예쁜 카드로 표시
                     st.success(f"**Current Order:** {' → '.join(visit_order)}")
 
             elif algo_type.startswith("SCC"):
-                # --- SCC: Identified Groups ---
                 st.markdown("**📦 Identified SCC Groups:**")
+                scc_dict = current_state.get("scc_groups", {})
                 
-                scc_dict = current_state.get("scc_groups", {}) # {node: group_id}
-                
-                # Grouping invert: {group_id: [nodes]}
                 groups = {}
                 for node, gid in scc_dict.items():
                     if gid not in groups: groups[gid] = []
@@ -373,30 +353,24 @@ def main():
                             members = sorted(groups[gid])
                             st.success(f"**SCC #{gid+1}:** {members}")
             
-            # 3. Execution Log (History)
+            # 4. Execution Logs
             st.divider()
             st.markdown("**📜 Execution Log History:**")
             
-            # 0부터 현재 idx까지의 모든 로그 수집
             history_logs = [s["log"] for s in steps[:idx+1]]
             
-            # 스크롤 가능한 영역 생성 (높이 200px 고정)
             with st.container(height=200, border=True):
-                # 최신 로그가 상단에 오도록 역순(reversed)으로 출력
                 for i, msg in enumerate(reversed(history_logs)):
                     if i == 0:
-                        # 현재 스텝 (가장 최신) 강조 표시
                         st.info(f"**[Current]** {msg}", icon="👉")
                     else:
-                        # 지나간 과거 스텝 (회색 텍스트)
                         st.caption(f"• {msg}")
   
-        # [수정 위치] col_viz, col_ctrl 컬럼 들여쓰기를 탈출하여, 맨 아래에 전체 너비로 작성
+        # --- Internal Data Structures (Bottom) ---
         st.divider()
         st.subheader("🔍 Internal Data Structures")
         
         with st.expander("View Adjacency Matrix & List (Click to Expand)", expanded=False):
-            # functions.py의 헬퍼 함수를 사용하여 데이터 가져오기
             header_nodes, matrix = functions.get_adjacency_matrix(
                 st.session_state.nodes, 
                 st.session_state.edges, 
@@ -408,27 +382,22 @@ def main():
                 st.session_state.is_directed
             )
             
-            # 내부에서 2단으로 나누어 보여주기
             d_col1, d_col2 = st.columns(2)
-            
             with d_col1:
-                st.markdown("**1️⃣ Adjacency List (인접 리스트)**")
+                st.markdown("**1️⃣ Adjacency List**")
                 st.caption("Storage: `O(V + E)`")
                 st.code(adj_list_txt, language="text")
                 
             with d_col2:
-                st.markdown("**2️⃣ Adjacency Matrix (인접 행렬)**")
+                st.markdown("**2️⃣ Adjacency Matrix**")
                 st.caption("Storage: `O(V^2)`")
-                # Pandas DataFrame을 사용하여 깔끔하게 렌더링
                 st.dataframe(pd.DataFrame(matrix, columns=header_nodes, index=header_nodes))
 
-        # --- (End of is_simulating block) ---
-
     else:
-        # Initial Empty State
+        # Initial State (No Simulation)
         st.info("👈 Select Algorithm from Sidebar and Click 'Initialize'")
         if st.session_state.nodes:
-            # Preview (Static)
+            # Static Preview
             is_d = st.session_state.is_directed
             dot = graphviz.Digraph(engine='neato') if is_d else graphviz.Graph(engine='neato')
             dot.attr(size='5.5,4.5!', ratio='fill', bgcolor='transparent') 
