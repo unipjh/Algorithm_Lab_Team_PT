@@ -50,9 +50,8 @@ The project follows a clean separation of concerns between the Presentation Laye
       * Displays the **Live Adjacency List** for discovered nodes.
   <figure>  
     <img
-      width="1908" height="912" alt="image"
-      src="https://github.com/user-attachments/assets/9feedc59-77ac-4c3f-aa20-13f28e1a24c3"    
-      />  
+     width="1274" height="682" alt="image" 
+     src="https://github.com/user-attachments/assets/4d0e0d61-12c8-4fb5-afab-5df118e41db3" />
     <figcaption>Fig 1. BFS Visualization Example</figcaption></figure>
   </figure>
   
@@ -65,9 +64,8 @@ The project follows a clean separation of concerns between the Presentation Laye
       * `\<span style="color:\#95A5A6"\>`**⬜ Gray Dotted:**\</span\> **Cross/Forward Edge**.
   * **Visual Cues:** Nodes show their **Depth (D0, D1...)**.
   <figure>  
-    <img
-      width="1908" height="912" alt="image"
-      src="https://github.com/user-attachments/assets/2175299d-d3a8-4911-9871-f56488ce7805" />
+   <img width="1273" height="677" alt="image" 
+    src="https://github.com/user-attachments/assets/e59917ae-8af8-4663-94be-fdebfff1e0a0" />
     <figcaption>Fig 2. DFS Visualization Example</figcaption>
   </figure>
   
@@ -79,9 +77,8 @@ The project follows a clean separation of concerns between the Presentation Laye
       * Shows the **Result Order** dynamically as nodes are popped from the recursion stack.
       * Displays **Rank (\#1, \#2...)** for sorted nodes.
   <figure>  
-    <img
-      width="1908" height="912" alt="image"
-      src="https://github.com/user-attachments/assets/f9d5e6bc-086a-418b-82c6-322ad173b981" />
+   <img width="1268" height="665" alt="image" 
+    src="https://github.com/user-attachments/assets/5b03a39a-95b2-4346-9557-7f149acb7787" />
     <figcaption>Fig 3. Topological Sort Visualization Example</figcaption>
   </figure>
 
@@ -93,9 +90,8 @@ The project follows a clean separation of concerns between the Presentation Laye
       * **Phase 2:** Performs DFS on the Transpose Graph.
       * **Grouping:** Identified SCCs are colored with distinct **Group Colors (G0, G1...)** for easy differentiation.
   <figure>  
-    <img
-      width="1908" height="912" alt="image"
-      src="https://github.com/user-attachments/assets/35e106eb-a269-4f41-a8b3-da573be10051" />
+    <img width="1269" height="674" alt="image" 
+     src="https://github.com/user-attachments/assets/317eb2d9-adca-4114-8049-e61fa6d60b60" />
     <figcaption>Fig 4. SCC Visualization Example</figcaption>
   </figure>
 -----
@@ -116,6 +112,7 @@ The project follows a clean separation of concerns between the Presentation Laye
 ### 3\. Control Panel (Right Column)
 
   * **Navigation:** `Prev` / `Next` buttons and a Progress Bar.
+  * **Components & Tree Edges:** Shows the number of connected components and edges
   * **Data Structures:** Shows the current state of the **Queue** or **Stack**.
   * **Context Info:**
       * **BFS/DFS:** Shows neighbors of currently active nodes.
