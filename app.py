@@ -264,7 +264,34 @@ def main():
                     st.rerun()
 
             st.divider()
+            # [추가] 과제 요구사항: 컴포넌트 & 트리 간선 개수 출력
+            # 1. 컴포넌트 개수 가져오기
+            current_comp_count = current_state.get("component_count", 0)
             
+            # 2. 트리 간선 개수 계산하기 (edge_types 딕셔너리에서 값이 'tree'인 것 카운트)
+            edge_types = current_state.get("edge_types", {})
+            tree_edge_count = 0
+            if edge_types:
+                for t in edge_types.values():
+                    if t == "tree":
+                        tree_edge_count += 1
+            
+            # 3. 화면에 표시 (2열 레이아웃)
+            m_col1, m_col2 = st.columns(2)
+            with m_col1:
+                label_comp = "📦 Found SCCs" if algo_type.startswith("SCC") else "🔗 Components"
+                st.metric(label=label_comp, value=current_comp_count)
+            with m_col2:
+                # Topo/SCC가 아닐 때(즉, BFS/DFS일 때)만 트리 간선 개수가 의미 있음
+                if algo_type in ["BFS (Breadth-First)", "DFS (Depth-First)"]:
+                    st.metric(label="🌲 Tree Edges", value=tree_edge_count)
+                else:
+                    # Topo/SCC는 정렬/그룹핑이 목적이라 트리 간선 개념이 모호할 수 있어 제외하거나 전체 노드 수 등으로 대체
+                    visited_cnt = len(current_state.get("visited", []))
+                    st.metric(label="👣 Visited", value=visited_cnt)
+
+            st.divider()
+
             # 2. Status Panel (Dynamic UI)
             # [수정] 알고리즘 타입에 따라 보여줄 정보를 다르게 구성
             
