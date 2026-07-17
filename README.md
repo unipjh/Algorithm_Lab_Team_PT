@@ -1,3 +1,19 @@
+<!-- problem-first-summary:start -->
+**Huge Problem(Pain Point):** 그래프 탐색 알고리즘은 최종 결과만 보면 큐·스택·간선 분류의 변화를 이해하기 어렵다.
+
+**솔루션 한 줄 정의:** BFS·DFS·위상 정렬·SCC의 내부 상태를 단계별로 재생하는 대화형 시각화 도구다.
+
+**현재 상태:** 팀 과제 사례 연구
+
+**문제 해결 중심의 사고 흐름**
+
+1. **관찰** — 교재의 정적 그래프만으로는 탐색 순서와 자료구조 상태가 왜 바뀌는지 따라가기 어려웠다.
+2. **선택** — 각 알고리즘을 상태 스냅샷의 연속으로 만들고 이전·다음 단계로 재생하도록 설계했다.
+3. **구현** — Streamlit과 Graphviz로 노드·간선·큐·스택·SCC 그룹을 단계별 색상과 레이블로 표현했다.
+4. **검증과 한계** — 배포 URL과 BFS·DFS·위상 정렬·Kosaraju SCC 흐름이 README에 기록되어 있다. 팀 내 개인 기여 범위는 추가 확인이 필요하다.
+<!-- problem-first-summary:end -->
+
+---
 # 🕸️ Interactive Graph Algorithm Visualizer
 
 > [Enter URL] https://algorithmlabteampt.streamlit.app/
